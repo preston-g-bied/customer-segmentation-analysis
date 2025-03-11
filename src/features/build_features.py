@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -6,6 +5,8 @@ import logging
 from pathlib import Path
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+import os
 
 # Set up logging
 logging.basicConfig(
@@ -33,25 +34,25 @@ def create_rfm_features(df):
         DataFrame with RFM features for each customer
     """
     logger.info("Creating RFM features")
-
-    # make sure we have a datetime column
+    
+    # Make sure we have a datetime column
     if not pd.api.types.is_datetime64_any_dtype(df['InvoiceDate']):
         df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
-
-    # get the max date to calculate recency
+    
+    # Get the max date to calculate recency
     max_date = df['InvoiceDate'].max() + timedelta(days=1)
-
-    # group by customer
+    
+    # Group by customer
     rfm = df.groupby('CustomerID').agg({
         'InvoiceDate': lambda x: (max_date - x.max()).days,  # Recency
-        'InvoiceNo': 'nunique',                              # Frequency
-        'TotalPrice': 'sum'                                  # Monetary
+        'InvoiceNo': 'nunique',  # Frequency
+        'TotalPrice': 'sum'  # Monetary
     })
-
-    # rename columns
+    
+    # Rename columns
     rfm.columns = ['Recency', 'Frequency', 'Monetary']
-
-    # log info about the features
+    
+    # Log info about the features
     logger.info(f"RFM features created with shape: {rfm.shape}")
     logger.info(f"RFM statistics:\n{rfm.describe()}")
     
@@ -72,47 +73,100 @@ def segment_customers(rfm_df, n_clusters=4):
     --------
     pandas.DataFrame
         DataFrame with RFM features and segment labels
+    dict
+        Dictionary with clustering metrics
     """
     logger.info(f"Segmenting customers into {n_clusters} groups")
-
-    # copy the dataframe
+    
+    # Copy the dataframe
     df = rfm_df.copy()
-
-    # scale the data
+    
+    # Handle outliers by capping at 99th percentile
+    for col in df.columns:
+        max_val = df[col].quantile(0.99)
+        df[col] = df[col].clip(upper=max_val)
+    
+    # Scale the data
     scaler = StandardScaler()
     rfm_scaled = scaler.fit_transform(df)
-
-    # apply KMeans clustering
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-    df['Segment'] = kmeans.fit_predict(rfm_scaled)
-
-    # analyze segments
-    segment_analysis = df.groupby('Segment').agg({
+    
+    # Try different numbers of clusters to find optimal
+    if n_clusters <= 0:  # Auto-detect number of clusters
+        logger.info("Auto-detecting optimal number of clusters")
+        
+        sil_scores = []
+        for k in range(2, 11):
+            kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+            labels = kmeans.fit_predict(rfm_scaled)
+            sil_score = silhouette_score(rfm_scaled, labels)
+            sil_scores.append(sil_score)
+            logger.info(f"  k={k}, silhouette score={sil_score:.3f}")
+        
+        # Choose k with highest silhouette score
+        optimal_k = np.argmax(sil_scores) + 2  # +2 because we started at k=2
+        logger.info(f"Optimal number of clusters: {optimal_k} (silhouette score: {sil_scores[optimal_k-2]:.3f})")
+        n_clusters = optimal_k
+    
+    # Apply KMeans clustering with the selected number of clusters
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    df['Cluster'] = kmeans.fit_predict(rfm_scaled)
+    
+    # Calculate silhouette score
+    silhouette_avg = silhouette_score(rfm_scaled, df['Cluster'])
+    logger.info(f"Silhouette score with {n_clusters} clusters: {silhouette_avg:.3f}")
+    
+    # Analyze segments
+    segment_analysis = df.groupby('Cluster').agg({
         'Recency': 'mean',
         'Frequency': 'mean',
-        'Monetary': 'mean'
+        'Monetary': 'mean',
+        'Recency': ['mean', 'median', 'count']
     })
-
+    
     logger.info(f"Segment analysis:\n{segment_analysis}")
-
-    # add segment labels
+    
+    # Add segment labels
     segment_names = {
-        segment_analysis['Monetary'].argmax(): 'High Value',
-        segment_analysis['Recency'].argmin(): 'Recent Customers',
-        segment_analysis['Frequency'].argmax(): 'Loyal Customers'
+        segment_analysis['Monetary']['mean'].idxmax(): 'High Value',
+        segment_analysis['Recency']['mean'].idxmin(): 'Recent Customers',
+        segment_analysis['Frequency']['mean'].idxmax(): 'Loyal Customers'
     }
-
-    # if we have a segment that's not in the special categories, label it as 'Standard'
+    
+    # If we have a segment that's not in the special categories, label it as 'Standard'
     for i in range(n_clusters):
         if i not in segment_names:
             segment_names[i] = 'Standard'
-
-    # map segment numbers to names
-    df['Segment_Name'] = df['Segment'].map(segment_names)
-
+    
+    # Map segment numbers to names
+    df['Segment_Name'] = df['Cluster'].map(segment_names)
+    
     logger.info(f"Customer segmentation completed with segments: {set(df['Segment_Name'])}")
     
-    return df
+    # Create a metrics dictionary
+    metrics = {
+        'n_clusters': n_clusters,
+        'silhouette_score': silhouette_avg,
+        'segment_sizes': df['Segment_Name'].value_counts().to_dict(),
+        'segment_details': {
+            segment: {
+                'recency_mean': df[df['Segment_Name'] == segment]['Recency'].mean(),
+                'frequency_mean': df[df['Segment_Name'] == segment]['Frequency'].mean(),
+                'monetary_mean': df[df['Segment_Name'] == segment]['Monetary'].mean(),
+                'count': df[df['Segment_Name'] == segment].shape[0],
+                'percentage': df[df['Segment_Name'] == segment].shape[0] / df.shape[0] * 100
+            } for segment in set(df['Segment_Name'])
+        }
+    }
+    
+    # Save metrics to a JSON file
+    metrics_file = Path(__file__).resolve().parent.parent.parent / "data" / "processed" / "features" / "clustering_metrics.json"
+    import json
+    with open(metrics_file, 'w') as f:
+        json.dump(metrics, f, indent=4)
+    
+    logger.info(f"Clustering metrics saved to {metrics_file}")
+    
+    return df, metrics
 
 def create_product_features(df):
     """
@@ -129,8 +183,8 @@ def create_product_features(df):
         DataFrame with product features
     """
     logger.info("Creating product features")
-
-    # group by product (StockCode)
+    
+    # Group by product (StockCode)
     product_features = df.groupby('StockCode').agg({
         'Quantity': 'sum',
         'TotalPrice': 'sum',
@@ -139,7 +193,7 @@ def create_product_features(df):
         'Description': 'first'
     })
     
-    # rename columns
+    # Rename columns
     product_features.columns = [
         'TotalQuantity', 
         'TotalRevenue', 
@@ -147,14 +201,14 @@ def create_product_features(df):
         'CustomerCount', 
         'Description'
     ]
-
-    # add average price per unit
+    
+    # Add average price per unit
     product_features['AvgPrice'] = product_features['TotalRevenue'] / product_features['TotalQuantity']
-
-    # add average quantity per transaction
+    
+    # Add average quantity per transaction
     product_features['AvgQuantityPerTransaction'] = product_features['TotalQuantity'] / product_features['TransactionCount']
     
-    # add average revenue per transaction
+    # Add average revenue per transaction
     product_features['AvgRevenuePerTransaction'] = product_features['TotalRevenue'] / product_features['TransactionCount']
     
     logger.info(f"Product features created with shape: {product_features.shape}")
@@ -176,16 +230,16 @@ def create_time_features(df):
         DataFrames with daily, weekly, and monthly aggregated features
     """
     logger.info("Creating time-based features")
-
-    # make sure we have a datetime column
+    
+    # Make sure we have a datetime column
     if not pd.api.types.is_datetime64_any_dtype(df['InvoiceDate']):
         df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
     
-    # add date components if they don't exist
+    # Add date components if they don't exist
     if 'Date' not in df.columns:
         df['Date'] = df['InvoiceDate'].dt.date
     
-    # daily features
+    # Daily features
     daily_features = df.groupby('Date').agg({
         'InvoiceNo': 'nunique',
         'CustomerID': 'nunique',
@@ -200,13 +254,13 @@ def create_time_features(df):
         'QuantitySold'
     ]
     
-    # add average revenue per transaction
+    # Add average revenue per transaction
     daily_features['AvgRevenuePerTransaction'] = daily_features['Revenue'] / daily_features['TransactionCount']
     
-    # add average items per transaction
+    # Add average items per transaction
     daily_features['AvgItemsPerTransaction'] = daily_features['QuantitySold'] / daily_features['TransactionCount']
     
-    # weekly features
+    # Weekly features
     df['Week'] = pd.to_datetime(df['Date']).dt.to_period('W')
     weekly_features = df.groupby('Week').agg({
         'InvoiceNo': 'nunique',
@@ -221,8 +275,8 @@ def create_time_features(df):
         'Revenue', 
         'QuantitySold'
     ]
-
-    # monthly features
+    
+    # Monthly features
     df['Month'] = pd.to_datetime(df['Date']).dt.to_period('M')
     monthly_features = df.groupby('Month').agg({
         'InvoiceNo': 'nunique',
@@ -255,10 +309,10 @@ def build_features(input_filepath, output_dir):
     output_dir : str
         Directory where to save the feature files
     """
-    # load processed data
+    # Load processed data
     logger.info(f"Loading processed data from {input_filepath}")
-
-    # determine file extension
+    
+    # Determine file extension
     _, file_extension = os.path.splitext(input_filepath)
     
     if file_extension.lower() == '.csv':
@@ -270,23 +324,27 @@ def build_features(input_filepath, output_dir):
     else:
         raise ValueError(f"Unsupported file extension: {file_extension}")
     
-    # create directory if it doesn't exist
+    # Create directory if it doesn't exist
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
-    # build RFM features
+    
+    # Build RFM features
     rfm_features = create_rfm_features(df)
-    rfm_features.to_parquet(os.path.join(output_dir, 'customer_segments.parquet'))
-
-    # segment customers
-    customer_segments = segment_customers(rfm_features)
+    rfm_features.to_parquet(os.path.join(output_dir, 'rfm_features.parquet'))
+    
+    # Segment customers
+    customer_segments, clustering_metrics = segment_customers(rfm_features)
     customer_segments.to_parquet(os.path.join(output_dir, 'customer_segments.parquet'))
-
-    # build product features
+    
+    # Save silhouette score separately for easy access
+    with open(os.path.join(output_dir, 'silhouette_score.txt'), 'w') as f:
+        f.write(f"{clustering_metrics['silhouette_score']}")
+    
+    # Build product features
     product_features = create_product_features(df)
     product_features.to_parquet(os.path.join(output_dir, 'product_features.parquet'))
-
-    # build time features
+    
+    # Build time features
     daily, weekly, monthly = create_time_features(df)
     daily.to_parquet(os.path.join(output_dir, 'daily_features.parquet'))
     weekly.to_parquet(os.path.join(output_dir, 'weekly_features.parquet'))
@@ -296,14 +354,17 @@ def build_features(input_filepath, output_dir):
 
 def main():
     """Build the features."""
-    # define file paths
+    # Define file paths
     current_dir = Path(__file__).resolve().parent
     project_dir = current_dir.parent.parent
     
     input_filepath = project_dir / "data" / "processed" / "online_retail_cleaned.parquet"
     output_dir = project_dir / "data" / "processed" / "features"
     
-    # build features
+    # Import os module needed for build_features
+    import os
+    
+    # Build features
     build_features(str(input_filepath), str(output_dir))
 
 if __name__ == "__main__":
