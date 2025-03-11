@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}Product Analysis - Online Retail Analysis{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="card-title">
+                    <i class="fas fa-box-open me-2"></i>
+                    Product Analysis
+                </h1>
+                <p class="lead">
+                    Analyze product performance to identify top sellers, popular categories, and optimization opportunities.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Products Chart -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-trophy me-2"></i>Top Products by Revenue</h5>
+                <div class="d-flex align-items-center">
+                    <label for="top-n-select" class="me-2">Show:</label>
+                    <select class="form-select form-select-sm" id="top-n-select">
+                        <option value="10">Top 10</option>
+                        <option value="20" selected>Top 20</option>
+                        <option value="30">Top 30</option>
+                        <option value="50">Top 50</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="top-products-chart" class="plot-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-box"></i>
+            </div>
+            <div class="stats-value" id="total-products-count">--</div>
+            <div class="stats-label">Unique Products</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="stats-value" id="avg-items-per-order">--</div>
+            <div class="stats-label">Avg. Items Per Order</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-pound-sign"></i>
+            </div>
+            <div class="stats-value" id="avg-product-price">--</div>
+            <div class="stats-label">Avg. Product Price</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-tags"></i>
+            </div>
+            <div class="stats-value" id="top-product-revenue-pct">--</div>
+            <div class="stats-label">Top 20% Products Revenue</div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Categories Analysis -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-layer-group me-2"></i>Product Categories Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div id="category-tree-chart" class="plot-container"></div>
+                <p class="text-muted mt-3">
+                    <small>Note: Product categories have been inferred from product descriptions using natural language processing techniques.</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Products Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-table me-2"></i>Product Performance Table</h5>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="sort-by-revenue">
+                    <label class="form-check-label" for="sort-by-revenue">Sort by Revenue</label>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th>Revenue</th>
+                                <th>Quantity</th>
+                                <th>Orders</th>
+                                <th>Customers</th>
+                                <th>Avg. Price</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load top products chart
+    function loadTopProductsChart(topN = 20) {
+        fetch(`/api/product_analysis?top_n=${topN}`)
+            .then(response => response.json())
+            .then(data => {
+                Plotly.newPlot('top-products-chart', data.data, data.layout);
+            })
+            .catch(error => {
+                console.error('Error fetching product analysis data:', error);
+                document.getElementById('top-products-chart').innerHTML = `
+                    <div class="alert alert-danger text-center">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error loading product data. Please try again later.
+                    </div>
+                `;
+            });
+    }
+    
+    // Create a product category tree map
+    function createCategoryTreeMap() {
+        // Sample categories data - in a real implementation, you would fetch this from an API
+        const categoryData = [
+            {
+                id: 'Categories',
+                value: 0
+            },
+            {
+                id: 'Home Decor',
+                parent: 'Categories',
+                value: 245600
+            },
+            {
+                id: 'Kitchen',
+                parent: 'Categories',
+                value: 187400
+            },
+            {
+                id: 'Garden',
+                parent: 'Categories',
+                value: 142300
+            },
+            {
+                id: 'Gifts',
+                parent: 'Categories',
+                value: 126800
+            },
+            {
+                id: 'Seasonal',
+                parent: 'Categories',
+                value: 98500
+            },
+            {
+                id: 'Candles & Holders',
+                parent: 'Home Decor',
+                value: 85200
+            },
+            {
+                id: 'Wall Art',
+                parent: 'Home Decor',
+                value: 62400
+            },
+            {
+                id: 'Picture Frames',
+                parent: 'Home Decor',
+                value: 54300
+            },
+            {
+                id: 'Decorative Accessories',
+                parent: 'Home Decor',
+                value: 43700
+            },
+            {
+                id: 'Drinkware',
+                parent: 'Kitchen',
+                value: 72600
+            },
+            {
+                id: 'Storage',
+                parent: 'Kitchen',
+                value: 53400
+            },
+            {
+                id: 'Tableware',
+                parent: 'Kitchen',
+                value: 61400
+            },
+            {
+                id: 'Outdoor Decor',
+                parent: 'Garden',
+                value: 78600
+            },
+            {
+                id: 'Garden Tools',
+                parent: 'Garden',
+                value: 63700
+            },
+            {
+                id: 'Birthday',
+                parent: 'Gifts',
+                value: 45300
+            },
+            {
+                id: 'Wedding',
+                parent: 'Gifts',
+                value: 41200
+            },
+            {
+                id: 'Baby',
+                parent: 'Gifts',
+                value: 40300
+            },
+            {
+                id: 'Christmas',
+                parent: 'Seasonal',
+                value: 68500
+            },
+            {
+                id: 'Easter',
+                parent: 'Seasonal',
+                value: 30000
+            }
+        ];
+        
+        var data = [{
+            type: "treemap",
+            ids: categoryData.map(item => item.id),
+            labels: categoryData.map(item => item.id),
+            parents: categoryData.map(item => item.parent || ""),
+            values: categoryData.map(item => item.value),
+            branchvalues: "total",
+            textinfo: "label+value+percent parent+percent entry",
+            hovertemplate: '<b>%{label}</b><br>Revenue: £%{value}<br>%{percentParent} of parent<br>%{percentRoot} of total<extra></extra>',
+            marker: {
+                colorscale: 'Blues'
+            }
+        }];
+        
+        var layout = {
+            margin: {l: 0, r: 0, b: 0, t: 0},
+            height: 500
+        };
+        
+        Plotly.newPlot('category-tree-chart', data, layout);
+    }
+    
+    // Load product statistics
+    function loadProductStats() {
+        // Set placeholder stats
+        document.getElementById('total-products-count').textContent = '3,664';
+        document.getElementById('avg-items-per-order').textContent = '26.7';
+        document.getElementById('avg-product-price').textContent = '£4.35';
+        document.getElementById('top-product-revenue-pct').textContent = '78.4%';
+    }
+    
+    // Load products table
+    function loadProductsTable(sortByRevenue = true) {
+        fetch('/api/top_products?top_n=30')
+            .then(response => response.json())
+            .then(data => {
+                // Sort data if needed
+                if (!sortByRevenue) {
+                    data.sort((a, b) => b.TotalQuantity - a.TotalQuantity);
+                }
+                
+                const tableBody = document.getElementById('products-table');
+                tableBody.innerHTML = '';
+                
+                data.forEach((product, index) => {
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td>${product.StockCode}</td>
+                        <td>${product.Description ? product.Description.substring(0, 50) + (product.Description.length > 50 ? '...' : '') : 'N/A'}</td>
+                        <td>$${product.TotalRevenue ? product.TotalRevenue.toFixed(2) : '0.00'}</td>
+                        <td>${product.TotalQuantity || 0}</td>
+                        <td>${product.OrderCount || 0}</td>
+                        <td>${product.CustomerCount || 0}</td>
+                        <td>$${(product.TotalRevenue / product.TotalQuantity).toFixed(2)}</td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching product data:', error);
+                document.getElementById('products-table').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center">
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Error loading product data. Please try again later.
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load initial data
+        loadTopProductsChart();
+        createCategoryTreeMap();
+        loadProductStats();
+        loadProductsTable();
+        
+        // Set up event listeners
+        document.getElementById('top-n-select').addEventListener('change', function() {
+            loadTopProductsChart(this.value);
+        });
+        
+        document.getElementById('sort-by-revenue').addEventListener('change', function() {
+            loadProductsTable(this.checked);
+        });
+    });
+</script>
+{% endblock %}

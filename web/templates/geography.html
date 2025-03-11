@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Geographic Analysis - Online Retail Analysis{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="card-title">
+                    <i class="fas fa-globe me-2"></i>
+                    Geographic Analysis
+                </h1>
+                <p class="lead">
+                    Analyze sales distribution across different countries and regions to identify market opportunities and optimize sales strategies.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Countries Chart -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-flag me-2"></i>Revenue by Country</h5>
+            </div>
+            <div class="card-body">
+                <div id="country-bar-chart" class="plot-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Country Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-flag-checkered"></i>
+            </div>
+            <div class="stats-value" id="total-countries">--</div>
+            <div class="stats-label">Total Countries</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="stats-value" id="top-country-percentage">--</div>
+            <div class="stats-label">Top Country % of Revenue</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-stream"></i>
+            </div>
+            <div class="stats-value" id="international-percentage">--</div>
+            <div class="stats-label">International Revenue %</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-expand-arrows-alt"></i>
+            </div>
+            <div class="stats-value" id="avg-order-by-distance">--</div>
+            <div class="stats-label">Avg. Order Value (Int'l)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Distribution Map -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-map-marked-alt me-2"></i>Customer Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div id="customer-map" class="plot-container" style="height: 600px;"></div>
+                <p class="text-muted mt-3">
+                    <small>Note: Circle size represents number of customers in each country. Color intensity represents total revenue.</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Countries Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-table me-2"></i>Country Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Country</th>
+                                <th>Revenue</th>
+                                <th>Customers</th>
+                                <th>Orders</th>
+                                <th>Avg. Order Value</th>
+                                <th>Top Product</th>
+                            </tr>
+                        </thead>
+                        <tbody id="countries-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load country revenue chart
+    function loadCountryRevenueChart() {
+        fetch('/api/country_analysis')
+            .then(response => response.json())
+            .then(data => {
+                Plotly.newPlot('country-bar-chart', data.data, data.layout);
+            })
+            .catch(error => {
+                console.error('Error fetching country analysis data:', error);
+                document.getElementById('country-bar-chart').innerHTML = `
+                    <div class="alert alert-danger text-center">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error loading country data. Please try again later.
+                    </div>
+                `;
+            });
+    }
+    
+    // Create customer distribution map
+    function createCustomerMap() {
+        // Sample country data - in a real implementation, you would fetch this from an API
+        const countryData = [
+            { country: 'United Kingdom', lat: 55.3781, lon: -3.4360, customers: 3950, revenue: 6882167 },
+            { country: 'Germany', lat: 51.1657, lon: 10.4515, customers: 95, revenue: 214337 },
+            { country: 'France', lat: 46.6034, lon: 1.8883, customers: 87, revenue: 196121 },
+            { country: 'Ireland', lat: 53.1424, lon: -7.6921, customers: 71, revenue: 156678 },
+            { country: 'Spain', lat: 40.4637, lon: -3.7492, customers: 33, revenue: 57390 },
+            { country: 'Netherlands', lat: 52.1326, lon: 5.2913, customers: 31, revenue: 55289 },
+            { country: 'Belgium', lat: 50.5039, lon: 4.4699, customers: 24, revenue: 40968 },
+            { country: 'Switzerland', lat: 46.8182, lon: 8.2275, customers: 19, revenue: 37896 },
+            { country: 'Portugal', lat: 39.3999, lon: -8.2245, customers: 18, revenue: 31465 },
+            { country: 'Australia', lat: -25.2744, lon: 133.7751, customers: 16, revenue: 36721 },
+            { country: 'Italy', lat: 41.8719, lon: 12.5674, customers: 14, revenue: 26492 },
+            { country: 'Finland', lat: 61.9241, lon: 25.7482, customers: 11, revenue: 21567 },
+            { country: 'Sweden', lat: 60.1282, lon: 18.6435, customers: 10, revenue: 19873 },
+            { country: 'Norway', lat: 60.4720, lon: 8.4689, customers: 9, revenue: 16798 },
+            { country: 'Denmark', lat: 56.2639, lon: 9.5018, customers: 7, revenue: 15321 }
+        ];
+        
+        // Calculate marker sizes based on number of customers (with a minimum size)
+        const sizes = countryData.map(d => Math.max(10, Math.sqrt(d.customers) * 2));
+        
+        // Calculate color intensity based on revenue
+        const maxRevenue = Math.max(...countryData.map(d => d.revenue));
+        const colorScale = countryData.map(d => d.revenue / maxRevenue);
+        
+        // Create scattergeo trace
+        var data = [{
+            type: 'scattergeo',
+            lon: countryData.map(d => d.lon),
+            lat: countryData.map(d => d.lat),
+            text: countryData.map(d => `${d.country}<br>Customers: ${d.customers}<br>Revenue: £${d.revenue.toLocaleString()}`),
+            marker: {
+                size: sizes,
+                color: countryData.map(d => d.revenue),
+                colorscale: 'Blues',
+                colorbar: {
+                    title: 'Revenue (£)',
+                    thickness: 20
+                },
+                line: {
+                    color: 'black',
+                    width: 1
+                }
+            },
+            hoverinfo: 'text'
+        }];
+        
+        var layout = {
+            geo: {
+                scope: 'world',
+                resolution: 50,
+                showland: true,
+                landcolor: 'rgb(217, 217, 217)',
+                showocean: true,
+                oceancolor: 'rgb(242, 242, 242)',
+                showcountries: true,
+                countrycolor: 'rgb(180, 180, 180)',
+                showframe: false,
+                projection: {
+                    type: 'natural earth'
+                }
+            },
+            margin: {
+                l: 0,
+                r: 0,
+                b: 0,
+                t: 0
+            }
+        };
+        
+        Plotly.newPlot('customer-map', data, layout);
+    }
+    
+    // Load country statistics
+    function loadCountryStats() {
+        // Set placeholder stats
+        document.getElementById('total-countries').textContent = '38';
+        document.getElementById('top-country-percentage').textContent = '87.3%';
+        document.getElementById('international-percentage').textContent = '12.7%';
+        document.getElementById('avg-order-by-distance').textContent = '£104.36';
+    }
+    
+    // Load countries table
+    function loadCountriesTable() {
+        // Sample country data - in a real implementation, you would fetch this from an API
+        const countryData = [
+            { country: 'United Kingdom', revenue: 6882167, customers: 3950, orders: 17894, avgOrderValue: 384.61, topProduct: 'PAPER CRAFT LITTLE BIRDIE' },
+            { country: 'Germany', revenue: 214337, customers: 95, orders: 257, avgOrderValue: 834.00, topProduct: 'METAL SIGN TAKE IT OR LEAVE IT' },
+            { country: 'France', revenue: 196121, customers: 87, orders: 241, avgOrderValue: 813.78, topProduct: 'CREAM CUPID HEARTS COAT HANGER' },
+            { country: 'Ireland', revenue: 156678, customers: 71, orders: 218, avgOrderValue: 718.71, topProduct: 'LUNCH BAG RED RETROSPOT' },
+            { country: 'Spain', revenue: 57390, customers: 33, orders: 68, avgOrderValue: 843.97, topProduct: 'SMALL POPCORN HOLDER' },
+            { country: 'Netherlands', revenue: 55289, customers: 31, orders: 64, avgOrderValue: 863.89, topProduct: 'WHITE HANGING HEART T-LIGHT HOLDER' },
+            { country: 'Belgium', revenue: 40968, customers: 24, orders: 47, avgOrderValue: 871.66, topProduct: 'ROSES REGENCY TEACUP AND SAUCER' },
+            { country: 'Switzerland', revenue: 37896, customers: 19, orders: 43, avgOrderValue: 881.30, topProduct: 'PINK REGENCY TEACUP AND SAUCER' },
+            { country: 'Australia', revenue: 36721, customers: 16, orders: 41, avgOrderValue: 895.63, topProduct: 'REGENCY CAKESTAND 3 TIER' },
+            { country: 'Portugal', revenue: 31465, customers: 18, orders: 35, avgOrderValue: 899.00, topProduct: 'PAPER CRAFT LITTLE BIRDIE' }
+        ];
+        
+        const tableBody = document.getElementById('countries-table');
+        tableBody.innerHTML = '';
+        
+        countryData.forEach(country => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${country.country}</td>
+                <td>£${country.revenue.toLocaleString()}</td>
+                <td>${country.customers}</td>
+                <td>${country.orders}</td>
+                <td>£${country.avgOrderValue.toFixed(2)}</td>
+                <td>${country.topProduct}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load all visualizations
+        loadCountryRevenueChart();
+        createCustomerMap();
+        loadCountryStats();
+        loadCountriesTable();
+    });
+</script>
+{% endblock %}

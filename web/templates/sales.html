@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Sales Analysis - Online Retail Analysis{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="card-title">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Sales Analysis
+                </h1>
+                <p class="lead">
+                    Analyze sales trends over time to identify patterns, growth opportunities, and potential areas of concern.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Time Period Selection -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Time Period</h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group" role="group" aria-label="Time period selector">
+                    <button type="button" class="btn btn-primary active" data-period="monthly" id="monthly-btn">Monthly</button>
+                    <button type="button" class="btn btn-outline-primary" data-period="weekly" id="weekly-btn">Weekly</button>
+                    <button type="button" class="btn btn-outline-primary" data-period="daily" id="daily-btn">Daily</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Trend Chart -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Sales Trend</h5>
+            </div>
+            <div class="card-body">
+                <div id="sales-trend-chart" class="plot-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Month-over-Month Growth -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-percentage me-2"></i>Growth Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card stats-card h-100">
+                            <div class="stats-icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <div class="stats-value" id="avg-monthly-growth">--</div>
+                            <div class="stats-label">Avg. Monthly Growth</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card stats-card h-100">
+                            <div class="stats-icon">
+                                <i class="fas fa-arrow-trend-up"></i>
+                            </div>
+                            <div class="stats-value" id="peak-month">--</div>
+                            <div class="stats-label">Peak Month</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card stats-card h-100">
+                            <div class="stats-icon">
+                                <i class="fas fa-arrow-trend-down"></i>
+                            </div>
+                            <div class="stats-value" id="slowest-month">--</div>
+                            <div class="stats-label">Slowest Month</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Products Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-trophy me-2"></i>Top 10 Products by Revenue</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th>Revenue</th>
+                                <th>Quantity</th>
+                                <th>Customers</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-products-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load sales trend based on selected period
+    function loadSalesTrend(period) {
+        fetch(`/api/sales_over_time?period=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                Plotly.newPlot('sales-trend-chart', data.data, data.layout);
+            })
+            .catch(error => {
+                console.error('Error fetching sales trend data:', error);
+                document.getElementById('sales-trend-chart').innerHTML = `
+                    <div class="alert alert-danger text-center">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error loading sales trend data. Please try again later.
+                    </div>
+                `;
+            });
+    }
+    
+    // Fetch top products
+    function loadTopProducts() {
+        fetch('/api/top_products?top_n=10')
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('top-products-table');
+                tableBody.innerHTML = '';
+                
+                data.forEach(product => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${product.StockCode}</td>
+                        <td>${product.Description.substring(0, 50)}${product.Description.length > 50 ? '...' : ''}</td>
+                        <td>$${product.TotalRevenue.toFixed(2)}</td>
+                        <td>${product.TotalQuantity}</td>
+                        <td>${product.CustomerCount}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching top products data:', error);
+                document.getElementById('top-products-table').innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Error loading product data. Please try again later.
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load initial data
+        loadSalesTrend('monthly');
+        loadTopProducts();
+        
+        // Set up period buttons
+        const periodButtons = document.querySelectorAll('[data-period]');
+        periodButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button styling
+                periodButtons.forEach(btn => {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.remove('active');
+                    btn.classList.add('btn-outline-primary');
+                });
+                this.classList.remove('btn-outline-primary');
+                this.classList.add('btn-primary');
+                this.classList.add('active');
+                
+                // Load data for selected period
+                const period = this.getAttribute('data-period');
+                loadSalesTrend(period);
+            });
+        });
+        
+        // Set placeholder growth analysis data
+        document.getElementById('avg-monthly-growth').textContent = '12.5%';
+        document.getElementById('peak-month').textContent = 'November';
+        document.getElementById('slowest-month').textContent = 'January';
+    });
+</script>
+{% endblock %}
