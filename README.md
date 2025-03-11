@@ -1,44 +1,98 @@
-# Customer Segmentation Analysis
+# Online Retail Analysis
 
-## Overview
-This project applies unsupervised learning techniques to segment customers based on their purchasing behavior using the [Online Retail dataset](https://www.kaggle.com/datasets/vijayuv/onlineretail). By analyzing transaction data, we identify distinct customer groups and create interactive visualizations to present insights about different customer segments.
+An in-depth analysis of online retail transactions with interactive visualizations.
 
-## Dataset
-The Online Retail dataset contains transactions from a UK-based online retail store that specializes in selling unique all-occasion gift-ware. The dataset includes:
-- Customer ID
-- Invoice date
-- Product details
-- Quantity
-- Price
-- Country
+## Project Overview
 
-## Methodology
-1. **Data Preprocessing**: Cleaning the dataset, handling missing values, and preparing it for analysis
-2. **Exploratory Data Analysis**: Analyzing transaction patterns, product popularity, and customer behavior
-3. **Feature Engineering**: Creating RFM (Recency, Frequency, Monetary) metrics and additional features
-4. **Customer Segmentation**: Applying K-Means and DBSCAN clustering algorithms
-5. **Visualization**: Creating interactive visualizations to present findings
+This project analyzes the [Online Retail dataset](https://www.kaggle.com/datasets/vijayuv/onlineretail) which contains all transactions from a UK-based online retail company from 01/12/2010 to 09/12/2011. The dataset includes transactions for a registered and non-store online retail company that mainly sells unique all-occasion gifts.
 
-## Results
-The analysis identified 4 distinct customer segments with a silhouette score of 0.68:
-- Segment 1: [Description]
-- Segment 2: [Description]
-- Segment 3: [Description]
-- Segment 4: [Description]
+## Features
 
-## Technologies Used
-- Python
-- Pandas & NumPy
-- Scikit-learn
-- K-Means & DBSCAN
-- Matplotlib & Seaborn
-- Plotly
+- Data cleaning and preprocessing
+- Exploratory data analysis
+- Customer segmentation
+- Product performance analysis
+- Sales trend visualization
+- Interactive dashboard
 
-## Project Structure
-[Directory structure will be added here]
+## Directory Structure
 
-## How to Run
-[Instructions will be added here]
+```
+online-retail-analysis/
+├── data/                  # Raw and processed data
+│   ├── raw/               # Original data files
+│   └── processed/         # Cleaned and transformed data
+├── notebooks/             # Jupyter notebooks for exploration
+├── src/                   # Source code
+│   ├── data/              # Data processing scripts
+│   │   ├── __init__.py
+│   │   ├── preprocessing.py
+│   │   └── validation.py
+│   ├── features/          # Feature engineering
+│   │   ├── __init__.py
+│   │   └── build_features.py
+│   ├── visualization/     # Visualization code
+│   │   ├── __init__.py
+│   │   └── visualize.py
+│   └── models/            # For any predictive models
+│       ├── __init__.py
+│       └── train_model.py
+├── tests/                 # Unit tests
+├── web/                   # Web application files
+├── docs/                  # Documentation
+├── requirements.txt       # Project dependencies
+├── setup.py               # Make project pip installable
+└── .gitignore             # Git ignore file
+```
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/your-username/online-retail-analysis.git
+cd online-retail-analysis
+```
+
+2. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install the required packages:
+```bash
+pip install -r requirements.txt
+```
+
+4. Download the dataset from [Kaggle](https://www.kaggle.com/datasets/vijayuv/onlineretail) and place it in the `data/raw/` directory.
+
+## Usage
+
+1. Run data preprocessing:
+```bash
+python src/data/preprocessing.py
+```
+
+2. Explore the notebooks in the `notebooks/` directory for detailed analysis.
+
+3. Launch the web dashboard:
+```bash
+python web/app.py
+```
+
+## Key Insights
+
+(To be added as the project develops)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
-[Your chosen license]
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgements
+
+- Dataset source: [Online Retail Dataset](https://www.kaggle.com/datasets/vijayuv/onlineretail)
+- Dr. Daqing Chen, Director: Public Analytics group, and Dr. Hongxin Wang at the School of Engineering, London South Bank University, UK

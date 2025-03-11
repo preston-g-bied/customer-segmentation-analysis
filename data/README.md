@@ -4,7 +4,7 @@ This directory contains the raw and processed data for the customer segmentation
 
 ## Data Files
 
-- `online_retail.xlsx`: Original dataset from Kaggle
+- `online_retail.csv`: Original dataset from Kaggle
 - `processed_data.csv`: Cleaned and preprocessed dataset
 - `rfm_data.csv`: Dataset with RFM (Recency, Frequency, Monetary) features
 - `clustered_data.csv`: Final dataset with cluster assignments
@@ -25,4 +25,4 @@ The Online Retail dataset contains transactions from a UK-based online retail st
 ## Data Acquisition
 
 1. Download the dataset from [Kaggle](https://www.kaggle.com/datasets/vijayuv/onlineretail)
-2. Place the `online_retail.xlsx` file in this directory
+2. Place the `online_retail.csv` file in this directory
