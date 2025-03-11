@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Online Retail Analysis{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="card-title">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    Dashboard Overview
+                </h1>
+                <p class="lead">
+                    Welcome to the Online Retail Analysis Dashboard. This interactive platform provides 
+                    comprehensive insights into customer behavior, product performance, and sales trends.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-shopping-bag"></i>
+            </div>
+            <div class="stats-value">{{ "{:,.0f}".format(stats.total_orders) }}</div>
+            <div class="stats-label">Total Orders</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stats-value">{{ "{:,.0f}".format(stats.total_customers) }}</div>
+            <div class="stats-label">Unique Customers</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-pound-sign"></i>
+            </div>
+            <div class="stats-value">{{ "${:,.2f}".format(stats.total_revenue) }}</div>
+            <div class="stats-label">Total Revenue</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-box"></i>
+            </div>
+            <div class="stats-value">{{ "{:,.0f}".format(stats.total_products) }}</div>
+            <div class="stats-label">Unique Products</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-receipt"></i>
+            </div>
+            <div class="stats-value">{{ "${:,.2f}".format(stats.average_order_value) }}</div>
+            <div class="stats-label">Average Order Value</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card h-100">
+            <div class="stats-icon">
+                <i class="fas fa-globe"></i>
+            </div>
+            <div class="stats-value">{{ stats.top_country }}</div>
+            <div class="stats-label">Top Country</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Insights -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Sales Trends</h5>
+            </div>
+            <div class="card-body">
+                <div id="monthly-sales-chart" class="plot-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Top Products -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5><i class="fas fa-trophy me-2"></i>Top Products</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Description</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-products-table"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="/products" class="btn btn-primary">See Full Product Analysis</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Customer Segments -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5><i class="fas fa-user-tag me-2"></i>Customer Segments</h5>
+            </div>
+            <div class="card-body">
+                <div id="customer-segments-chart" class="plot-container"></div>
+            </div>
+            <div class="card-footer">
+                <a href="/customers" class="btn btn-primary">See Full Customer Analysis</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Links -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="mb-4">Explore Detailed Analyses</h4>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-primary text-white rounded-circle p-3 me-3">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <h5 class="mb-0"><a href="/sales" class="text-decoration-none">Sales Analysis</a></h5>
+                        </div>
+                        <p>Analyze sales trends over time, including daily, weekly, and monthly patterns.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-success text-white rounded-circle p-3 me-3">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h5 class="mb-0"><a href="/customers" class="text-decoration-none">Customer Insights</a></h5>
+                        </div>
+                        <p>Segment customers based on Recency, Frequency, and Monetary value (RFM analysis).</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-info text-white rounded-circle p-3 me-3">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <h5 class="mb-0"><a href="/products" class="text-decoration-none">Product Performance</a></h5>
+                        </div>
+                        <p>Identify top-performing products and analyze product categories.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-warning text-white rounded-circle p-3 me-3">
+                                <i class="fas fa-globe"></i>
+                            </div>
+                            <h5 class="mb-0"><a href="/geography" class="text-decoration-none">Geographic Distribution</a></h5>
+                        </div>
+                        <p>Explore sales distribution across different countries and regions.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-danger text-white rounded-circle p-3 me-3">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <h5 class="mb-0"><a href="/patterns" class="text-decoration-none">Temporal Patterns</a></h5>
+                        </div>
+                        <p>Discover patterns in sales data by hour of day and day of week.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Fetch monthly sales data
+    fetch('/api/sales_over_time?period=monthly')
+        .then(response => response.json())
+        .then(data => {
+            Plotly.newPlot('monthly-sales-chart', data.data, data.layout);
+        });
+    
+    // Fetch top products data
+    fetch('/api/top_products?top_n=5')
+        .then(response => response.json())
+        .then(data => {
+            const tableBody = document.getElementById('top-products-table');
+            data.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.StockCode}</td>
+                    <td>${product.Description.substring(0, 30)}${product.Description.length > 30 ? '...' : ''}</td>
+                    <td>$${product.TotalRevenue.toFixed(2)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        });
+    
+    // Create simplified customer segments chart for dashboard
+    const segmentData = [
+        { name: 'High Value', value: 25 },
+        { name: 'Recent Customers', value: 35 },
+        { name: 'Loyal Customers', value: 30 },
+        { name: 'Standard', value: 10 }
+    ];
+    
+    const data = [{
+        values: segmentData.map(segment => segment.value),
+        labels: segmentData.map(segment => segment.name),
+        type: 'pie',
+        textinfo: 'label+percent',
+        insidetextorientation: 'radial',
+        marker: {
+            colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+        }
+    }];
+    
+    const layout = {
+        margin: { l: 0, r: 0, b: 0, t: 0 },
+        showlegend: true,
+        legend: {
+            orientation: 'h',
+            y: -0.1
+        }
+    };
+    
+    Plotly.newPlot('customer-segments-chart', data, layout);
+</script>
+{% endblock %}

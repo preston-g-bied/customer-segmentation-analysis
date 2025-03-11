@@ -1,0 +1,34 @@
+{
+    "visualizations": [
+        {
+            "name": "Monthly Sales",
+            "path": "monthly_sales.html",
+            "description": "Monthly sales and transaction trends"
+        },
+        {
+            "name": "Daily Sales",
+            "path": "daily_sales.html",
+            "description": "Daily sales and transaction trends"
+        },
+        {
+            "name": "Customer Segments",
+            "path": "customer_segments.html",
+            "description": "3D visualization of customer segments based on RFM analysis"
+        },
+        {
+            "name": "Top Products",
+            "path": "top_products.html",
+            "description": "Top products by revenue"
+        },
+        {
+            "name": "Country Analysis",
+            "path": "country_analysis.html",
+            "description": "Sales analysis by country"
+        },
+        {
+            "name": "Hourly Patterns",
+            "path": "hourly_patterns.html",
+            "description": "Sales patterns by hour and day of week"
+        }
+    ]
+}

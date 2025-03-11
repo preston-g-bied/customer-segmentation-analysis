@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Sales Patterns - Online Retail Analysis{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="card-title">
+                    <i class="fas fa-clock me-2"></i>
+                    Sales Patterns Analysis
+                </h1>
+                <p class="lead">
+                    Discover patterns in sales data by time of day and day of the week. These insights can help optimize 
+                    staffing, inventory management, and marketing strategies.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hourly Patterns -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-chart-area me-2"></i>Hourly Sales Patterns</h5>
+            </div>
+            <div class="card-body">
+                <div id="hourly-patterns-chart" class="plot-container"></div>
+                <div class="mt-4">
+                    <h6>Key Insights:</h6>
+                    <ul>
+                        <li>Identify peak sales hours to optimize staffing and inventory levels</li>
+                        <li>Discover which days of the week have the highest sales volume</li>
+                        <li>Understand customer shopping patterns throughout the week</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Trends -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-calendar-alt me-2"></i>Monthly & Seasonal Trends</h5>
+            </div>
+            <div class="card-body">
+                <div id="monthly-trends-chart" class="plot-container"></div>
+                <div class="mt-4">
+                    <h6>Key Insights:</h6>
+                    <ul>
+                        <li>Identify seasonal sales patterns and prepare for peak periods</li>
+                        <li>Understand how different months affect your business performance</li>
+                        <li>Plan inventory and marketing campaigns based on historical monthly trends</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Tips -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb me-2"></i>How to Use This Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex">
+                            <div class="bg-primary text-white rounded p-3 me-3">
+                                <i class="fas fa-store"></i>
+                            </div>
+                            <div>
+                                <h6>Optimize Business Hours</h6>
+                                <p>Adjust your business hours to match peak customer activity times for maximum sales.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex">
+                            <div class="bg-success text-white rounded p-3 me-3">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <h6>Staff Planning</h6>
+                                <p>Schedule more staff during peak hours and days to ensure excellent customer service.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex">
+                            <div class="bg-info text-white rounded p-3 me-3">
+                                <i class="fas fa-ad"></i>
+                            </div>
+                            <div>
+                                <h6>Marketing Timing</h6>
+                                <p>Schedule marketing campaigns and promotions during slower periods to boost sales.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex">
+                            <div class="bg-warning text-white rounded p-3 me-3">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <div>
+                                <h6>Inventory Management</h6>
+                                <p>Ensure sufficient stock levels during peak sales periods to avoid stockouts.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex">
+                            <div class="bg-danger text-white rounded p-3 me-3">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>
+                                <h6>Seasonal Planning</h6>
+                                <p>Prepare for seasonal trends by adjusting your inventory and marketing strategy.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex">
+                            <div class="bg-secondary text-white rounded p-3 me-3">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <div>
+                                <h6>Identify Anomalies</h6>
+                                <p>Spot unusual patterns that might indicate problems or new opportunities.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Fetch hourly patterns data
+    fetch('/api/hourly_patterns')
+        .then(response => response.json())
+        .then(data => {
+            Plotly.newPlot('hourly-patterns-chart', data.data, data.layout);
+        })
+        .catch(error => {
+            console.error('Error fetching hourly patterns data:', error);
+            document.getElementById('hourly-patterns-chart').innerHTML = `
+                <div class="alert alert-danger text-center">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Error loading hourly patterns data. Please try again later.
+                </div>
+            `;
+        });
+        
+    // Fetch monthly sales data for trends chart
+    fetch('/api/sales_over_time?period=monthly')
+        .then(response => response.json())
+        .then(data => {
+            Plotly.newPlot('monthly-trends-chart', data.data, data.layout);
+        })
+        .catch(error => {
+            console.error('Error fetching monthly trends data:', error);
+            document.getElementById('monthly-trends-chart').innerHTML = `
+                <div class="alert alert-danger text-center">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Error loading monthly trends data. Please try again later.
+                </div>
+            `;
+        });
+</script>
+{% endblock %}
